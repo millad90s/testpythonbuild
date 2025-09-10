@@ -74,7 +74,7 @@ def build_executable():
     """Build the executable using PyInstaller."""
     print("🔨 Building executable with PyInstaller...")
     
-    # PyInstaller command
+    # PyInstaller command with comprehensive imports
     cmd = [
         'pyinstaller',
         '--onefile',                    # Create a single executable file
@@ -82,10 +82,25 @@ def build_executable():
         '--name', 'SystemInfoDashboard', # Name of the executable
         '--add-data', 'app.py;.',       # Include app.py in the bundle
         '--hidden-import', 'streamlit', # Ensure Streamlit is included
-        '--hidden-import', 'psutil',    # Ensure psutil is included
-        '--hidden-import', 'platform',  # Ensure platform is included
-        '--hidden-import', 'datetime',  # Ensure datetime is included
-        '--hidden-import', 'time',      # Ensure time is included
+        '--hidden-import', 'streamlit.web',
+        '--hidden-import', 'streamlit.web.cli',
+        '--hidden-import', 'streamlit.runtime',
+        '--hidden-import', 'streamlit.runtime.scriptrunner',
+        '--hidden-import', 'streamlit.runtime.state',
+        '--hidden-import', 'streamlit.components',
+        '--hidden-import', 'streamlit.components.v1',
+        '--hidden-import', 'altair',
+        '--hidden-import', 'pandas',
+        '--hidden-import', 'numpy',
+        '--hidden-import', 'psutil',
+        '--hidden-import', 'platform',
+        '--hidden-import', 'datetime',
+        '--hidden-import', 'time',
+        '--collect-all', 'streamlit',   # Collect all Streamlit modules
+        '--collect-all', 'altair',      # Collect all Altair modules
+        '--collect-all', 'pandas',      # Collect all Pandas modules
+        '--collect-all', 'numpy',       # Collect all NumPy modules
+        '--collect-all', 'psutil',      # Collect all psutil modules
         'build_script.py'
     ]
     

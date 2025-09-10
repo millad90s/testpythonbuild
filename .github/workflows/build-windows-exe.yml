@@ -66,7 +66,7 @@ jobs:
         
     - name: Build executable with PyInstaller
       run: |
-        pyinstaller --onefile --windowed --name "SystemInfoDashboard" --add-data "app.py;." build_script.py
+        pyinstaller --onefile --windowed --name "SystemInfoDashboard" --add-data "app.py;." --hidden-import streamlit --hidden-import streamlit.web --hidden-import streamlit.web.cli --hidden-import streamlit.runtime --hidden-import streamlit.runtime.scriptrunner --hidden-import streamlit.runtime.state --hidden-import streamlit.components --hidden-import streamlit.components.v1 --hidden-import altair --hidden-import pandas --hidden-import numpy --hidden-import psutil --hidden-import platform --hidden-import datetime --hidden-import time --collect-all streamlit --collect-all altair --collect-all pandas --collect-all numpy --collect-all psutil build_script.py
         
     - name: Create additional files for distribution
       run: |
