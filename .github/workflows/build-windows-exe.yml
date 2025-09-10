@@ -1,0 +1,119 @@
+name: Build Windows Executable
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  release:
+    types: [ published ]
+  workflow_dispatch:
+
+jobs:
+  build-windows-exe:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~\AppData\Local\pip\Cache
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Create build script
+      run: |
+        echo "import streamlit.web.cli as stcli" > build_script.py
+        echo "import sys" >> build_script.py
+        echo "import os" >> build_script.py
+        echo "" >> build_script.py
+        echo "def main():" >> build_script.py
+        echo "    # Set Streamlit config" >> build_script.py
+        echo "    os.environ['STREAMLIT_SERVER_HEADLESS'] = 'true'" >> build_script.py
+        echo "    os.environ['STREAMLIT_SERVER_PORT'] = '8501'" >> build_script.py
+        echo "    os.environ['STREAMLIT_SERVER_ADDRESS'] = 'localhost'" >> build_script.py
+        echo "    " >> build_script.py
+        echo "    # Get the directory where the exe is located" >> build_script.py
+        echo "    if getattr(sys, 'frozen', False):" >> build_script.py
+        echo "        # Running as compiled exe" >> build_script.py
+        echo "        app_dir = os.path.dirname(sys.executable)" >> build_script.py
+        echo "    else:" >> build_script.py
+        echo "        # Running as script" >> build_script.py
+        echo "        app_dir = os.path.dirname(os.path.abspath(__file__))" >> build_script.py
+        echo "    " >> build_script.py
+        echo "    app_path = os.path.join(app_dir, 'app.py')" >> build_script.py
+        echo "    " >> build_script.py
+        echo "    # Run Streamlit" >> build_script.py
+        echo "    sys.argv = ['streamlit', 'run', app_path]" >> build_script.py
+        echo "    stcli.main()" >> build_script.py
+        echo "" >> build_script.py
+        echo "if __name__ == '__main__':" >> build_script.py
+        echo "    main()" >> build_script.py
+        
+    - name: Build executable with PyInstaller
+      run: |
+        pyinstaller --onefile --windowed --name "SystemInfoDashboard" --add-data "app.py;." build_script.py
+        
+    - name: Create additional files for distribution
+      run: |
+        # Create a batch file to run the application
+        echo "@echo off" > dist/run_system_info.bat
+        echo "echo Starting System Information Dashboard..." >> dist/run_system_info.bat
+        echo "echo Please wait while the application loads..." >> dist/run_system_info.bat
+        echo "echo The application will open in your default web browser." >> dist/run_system_info.bat
+        echo "echo " >> dist/run_system_info.bat
+        echo "SystemInfoDashboard.exe" >> dist/run_system_info.bat
+        echo "pause" >> dist/run_system_info.bat
+        
+        # Create a README for the executable
+        echo "# System Information Dashboard - Windows Executable" > dist/README.txt
+        echo "" >> dist/README.txt
+        echo "## How to Run:" >> dist/README.txt
+        echo "1. Double-click 'run_system_info.bat' to start the application" >> dist/README.txt
+        echo "2. Or double-click 'SystemInfoDashboard.exe' directly" >> dist/README.txt
+        echo "3. The application will open in your default web browser" >> dist/README.txt
+        echo "" >> dist/README.txt
+        echo "## System Requirements:" >> dist/README.txt
+        echo "- Windows 10 or later" >> dist/README.txt
+        echo "- No additional software installation required" >> dist/README.txt
+        echo "" >> dist/README.txt
+        echo "## Features:" >> dist/README.txt
+        echo "- Real-time system information" >> dist/README.txt
+        echo "- CPU, Memory, and Disk usage monitoring" >> dist/README.txt
+        echo "- Operating system detection" >> dist/README.txt
+        echo "- Network information" >> dist/README.txt
+        echo "" >> dist/README.txt
+        echo "## Troubleshooting:" >> dist/README.txt
+        echo "If the application doesn't start:" >> dist/README.txt
+        echo "1. Make sure Windows Defender or antivirus isn't blocking it" >> dist/README.txt
+        echo "2. Try running as administrator" >> dist/README.txt
+        echo "3. Check that port 8501 is not in use by another application" >> dist/README.txt
+        
+    - name: Upload executable as artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: system-info-dashboard-windows
+        path: dist/
+        retention-days: 30
+        
+    - name: Create Release (on tag)
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/*
+        draft: false
+        prerelease: false
